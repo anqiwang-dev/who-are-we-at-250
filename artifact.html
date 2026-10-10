@@ -334,7 +334,7 @@ function drawLine(s, now) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0,
   g.textAlign = "center"; for (let y = NY0; y <= 2026; y++) { if (L.nar && LC.span > 20 ? ((y % 5 || y === 2025) && y !== 2026) : (LC.span > 20 || (L.nar && LC.span > 10)) && y % 2 && y !== 2025) continue; const X = L.X(y); if (X < L.ax || X > W - 10) continue; g.fillStyle = y >= 2020 ? "#ff5a40" : "#66738a"; g.fillRect(X, L.yb + 10, 1, 5); g.fillText(String(y), X, L.yb + 30); }
   const x1 = s.pen, step = LC.span/420, xe = LC.x - LC.span*.66, XJ = NY0 + .9, xs = Math.min(xe, NY0 - .2); g.lineCap = "round";
   if (s.op < .99) for (const st of STR) { const reach = s.strands >= 1 ? 1 : ease(clamp((s.strands*1.9 - st.dl*.9)/1)), xEnd = s.pen > NY0 + .01 ? x1 : lerp(xs, NY0, reach); if (xEnd <= xs + 1e-3) continue; g.beginPath(); let pen = false;
-    for (let x = Math.max(xs, LC.x - LC.span*.7); x <= xEnd + 1e-6; x += step) { const xx = Math.min(x, xEnd);
+    for (let x = Math.max(xs, LC.x - LC.span*.7); x < xEnd + step - 1e-9; x += step) { const xx = Math.min(x, xEnd);   /* the last sample lands exactly on xEnd, so the hair meets the 2026 fan with no gap */
       let o = 13*(st.b + st.a*.6*Math.sin(xx*st.f + st.ph + now/2300*(.5 + st.a*.4))*Math.sin(xx*st.f2 + st.ph2 - now/3700)), Y = L.Y(nimAt(Math.max(xx, NY0))) + o;
       if (xx < XJ) { const k = clamp((xx - xs)/(XJ - xs)), j = k*k*(3 - 2*k); Y = lerp(H*.5 + st.e*H*.44 + 24*Math.sin(now/2600 + st.ph + xx*.8), Y, j); }
       const X = L.X(xx); pen ? g.lineTo(X, Y) : g.moveTo(X, Y); pen = true; }
