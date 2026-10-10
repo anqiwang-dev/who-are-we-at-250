@@ -1,0 +1,34 @@
+/* Shared by every page: type, colours and the navbar. Every page is dark like the artifact: near-black ground,
+   warm white text, the artifact's blue for headings and accents. */
+:root{--font:'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;--red:#7fc0dc;--blue:#7fc0dc;--blue2:#3d8fb3;
+  --bg:#05080d;--ink:#ece6d8;--ink2:#a7b0bf;--ink3:#66738a;--rule:#1c2533;--nav-h:56px}
+body.dark{--bg:#05080d;--ink:#ece6d8;--ink2:#a7b0bf;--ink3:#66738a;--rule:#1c2533}
+*,*::before,*::after{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:300 16px/1.65 var(--font)}
+a{color:inherit}
+.page a{color:var(--blue);text-decoration-color:rgba(127,192,220,.4);text-underline-offset:3px}
+.page a:hover{text-decoration-color:var(--blue)}
+[hidden]{display:none!important}
+
+/* ---- navbar: the site's name on the left, the pages on the right */
+.nav{position:fixed;inset:0 0 auto 0;z-index:100;height:var(--nav-h);display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:0 clamp(16px,3vw,40px);background:var(--bg);border-bottom:1px solid var(--rule)}
+.nav .brand{font:700 15px/1.2 var(--font);color:var(--blue);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.nav ul{display:flex;gap:clamp(14px,2.4vw,32px);list-style:none;margin:0;padding:0}
+.nav a.link{font:400 14px/1 var(--font);letter-spacing:.04em;text-decoration:none;color:var(--ink2);padding:6px 0;border-bottom:1px solid transparent}
+.nav a.link:hover{color:var(--ink)}
+.nav a.link[aria-current=page]{color:var(--ink);border-bottom-color:var(--blue)}
+.nav a:focus-visible{outline:2px solid var(--blue);outline-offset:4px}
+@media (max-width:620px){.nav .brand{font-size:13px}.nav ul{gap:12px}.nav a.link{font-size:13px}}
+@media (max-width:500px){.nav .brand{display:none}.nav{justify-content:center}}   /* seven pages: on a phone the links get the whole bar */
+
+/* ---- text pages (About, Team, Data, Methods): one readable column under the navbar */
+.page{max-width:760px;margin:0 auto;padding:calc(var(--nav-h) + 48px) 20px 80px}
+.page h1{font:400 clamp(30px,4.4vw,46px)/1.12 var(--font);color:var(--ink);margin:0 0 28px;text-wrap:balance}
+.page h2{font:400 clamp(20px,2.4vw,26px)/1.25 var(--font);color:var(--blue);margin:48px 0 14px}
+.page h3{font:700 15px/1.4 var(--font);color:var(--ink);margin:26px 0 6px}
+.page p{margin:0 0 1em}
+.page ul{margin:0 0 1em;padding-left:1.2em}.page li{margin:0 0 .5em}
+.page .lede{font-size:19px;color:var(--ink)}
+.page b,.page strong{font-weight:700;color:var(--ink)}
