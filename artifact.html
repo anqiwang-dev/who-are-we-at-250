@@ -868,15 +868,39 @@ window.APP = {cityKeep, dive: v => { DVT = v; }, land: () => { FLY0 = performanc
 MODE = "explore"; ["head", "yrbox"].forEach(id => $(id).hidden = false); $("ctrl").hidden = true; $("back").hidden = true; setYear(2024); setView("line", true);
 document.fonts.ready.then(() => requestAnimationFrame(frame));
 </script>
-<a id="siteback" href="index.html" style="position:fixed;left:clamp(16px,2vw,28px);top:12px;z-index:50;font:500 10.5px 'Century Gothic',CenturyGothic,AppleGothic,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a7b0bf;text-decoration:none">← About</a><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script><style>body.usmap #split,body.usmap #grip,body.usmap #yrbox,body.usmap #legend,body.usmap #years,body.usmap #ctrl,body.usmap #hint,body.usmap #tip,body.usmap #land,body.usmap #gl,body.usmap #ov,body.usmap #fx{visibility:hidden!important}</style><script>/* site: in "The US" chapter, Daniel's interactive US map (map.html?embed) fills the view under the title and the chapter tabs */
-(() => { let fr = null; const nav = document.getElementById("nav"), head = document.getElementById("head");
-  function place() { if (!fr) return; const t = Math.max(nav.getBoundingClientRect().bottom, head ? head.getBoundingClientRect().bottom : 0) + 10; fr.style.top = t + "px"; fr.style.height = (innerHeight - t) + "px"; }
-  function sync() { const on = !!nav.querySelector('[data-c="us"][aria-current]');
-    if (on && !fr) { fr = document.createElement("iframe"); fr.id = "usmap"; fr.src = "map.html?embed"; fr.title = "Map of the United States: hover a state, click it to see its immigration since 2001";
-      fr.style.cssText = "position:fixed;left:0;right:0;bottom:0;width:100%;border:0;background:#05080d;z-index:40;transition:opacity .4s;opacity:0"; document.body.appendChild(fr);
-      fr.addEventListener("load", () => setTimeout(() => fr.style.opacity = 1, 150)); }
-    document.body.classList.toggle("usmap", on);
-    if (on) { const s = () => { const h = document.getElementById("hsub"); if (h) h.textContent = "Hover a state to highlight it; click it to see its immigration since 2001. Switch layers on and off below, and drag the year."; }; s(); setTimeout(s, 60); setTimeout(s, 600); }
-    if (fr) { place(); fr.style.pointerEvents = on ? "auto" : "none"; if (fr.dataset.loaded || !on) fr.style.opacity = on ? 1 : 0; fr.style.visibility = on ? "visible" : "hidden"; if (on) fr.dataset.loaded = 1; } }
-  new MutationObserver(sync).observe(nav, {subtree: true, attributes: true, attributeFilter: ["aria-current"]}); addEventListener("resize", place); sync(); })();
+<a id="siteback" href="index.html" style="position:fixed;left:clamp(16px,2vw,28px);top:12px;z-index:50;font:500 10.5px 'Century Gothic',CenturyGothic,AppleGothic,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#a7b0bf;text-decoration:none">← About</a><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script><style>body.usmap #split,body.usmap #grip,body.usmap #yrbox,body.usmap #legend,body.usmap #years,body.usmap #ctrl,body.usmap #hint,body.usmap #tip,body.usmap #land,body.usmap #gl,body.usmap #ov,body.usmap #fx{visibility:hidden!important}</style><style>#cityPins{position:fixed;inset:0;z-index:41;pointer-events:none}#cityPins button{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;background:none;border:0;padding:0;cursor:pointer;width:34px;height:34px}
+#cityPins button::before{content:"";position:absolute;inset:8px;border-radius:50%;border:1.5px solid #ece6d8;box-shadow:0 0 14px rgba(127,192,220,.7);animation:cpulse 2.4s ease-in-out infinite}
+#cityPins button span{position:absolute;left:36px;top:50%;transform:translateY(-50%);white-space:nowrap;font:500 12px 'Century Gothic',CenturyGothic,AppleGothic,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ece6d8;text-shadow:0 0 6px #05080d,0 0 12px #05080d}
+#cityPins button.r span{left:auto;right:36px}#cityPins button:hover::before,#cityPins button:focus-visible::before{background:rgba(127,192,220,.25)}
+@keyframes cpulse{50%{transform:scale(1.25);opacity:.7}}</style>
+<script>/* site: the interactive state map (map.html?embed) is the US in "The US" chapter and the starting map of "The cities":
+   clicking Los Angeles or Boston hands the map's exact camera to the artifact, which flies from there into the city; "← Both cities" flies back and the map returns */
+(() => { let fr = null, pins = null, leaving = false, shown = false, prevK = null; const nav = document.getElementById("nav"), head = document.getElementById("head");
+  const CITIES = [["la", "Los Angeles", -118.24, 34.05, 1], ["bos", "Boston", -71.06, 42.36, 0]];
+  const topY = () => Math.max(nav.getBoundingClientRect().bottom, head ? head.getBoundingClientRect().bottom : 0) + 10;
+  const fwin = () => fr && fr.contentWindow, fev = js => { try { return fwin().eval(js); } catch (e) { return null; } };
+  function place() { if (!fr) return; const t = topY(); fr.style.top = t + "px"; fr.style.height = (innerHeight - t) + "px"; }
+  function mapCam() { const c = fev("usViews()[0]"); return c && {lon: c.lon, lat: c.lat, R: c.R, cx: c.cx, cy: c.cy + topY()}; }
+  function screen(c, lon, lat) { const L = c.lon*Math.PI/180, B = c.lat*Math.PI/180, l = lon*Math.PI/180, f = lat*Math.PI/180, p = [Math.cos(f)*Math.sin(l), Math.sin(f), Math.cos(f)*Math.cos(l)];
+    const x = Math.cos(L)*p[0] - Math.sin(L)*p[2], y = -Math.sin(L)*Math.sin(B)*p[0] + Math.cos(B)*p[1] - Math.cos(L)*Math.sin(B)*p[2]; return [c.cx + x*c.R, c.cy - y*c.R]; }
+  function make() { fr = document.createElement("iframe"); fr.id = "usmap"; fr.src = "map.html?embed"; fr.title = "Map of the United States: hover a state, click it to see its immigration since 2001";
+    fr.style.cssText = "position:fixed;left:0;right:0;bottom:0;width:100%;border:0;background:#05080d;z-index:40;transition:opacity .7s;opacity:0"; document.body.appendChild(fr); fr.addEventListener("load", () => { fr.dataset.loaded = 1; });
+    pins = document.createElement("div"); pins.id = "cityPins"; pins.hidden = true; document.body.appendChild(pins);
+    for (const [k, n, , , r] of CITIES) { const b = document.createElement("button"); b.type = "button"; b.dataset.k = k; if (r) b.className = "r"; b.innerHTML = `<span>${n}</span>`; b.setAttribute("aria-label", n); b.onclick = () => go(k); pins.appendChild(b); } }
+  function go(k) { const c = mapCam(); if (c) { CAM = c; camT = null; ROT = rot(CAM); } leaving = true; selectCity(k); }
+  function tick() { const v = typeof VIEW !== "undefined" ? VIEW : null, ck = typeof CITYK !== "undefined" ? CITYK : null;
+    if (ck) leaving = false;
+    if (prevK && !ck && v === "city" && camT) { const c = mapCam(); if (c) camT.b = c; }   /* back to both cities: land on the map's own framing, so it fades back in without a jump */
+    prevK = ck;
+    const want = v === "us" || (v === "city" && !ck && !leaving && !camT);
+    if (want && !fr) make();
+    if (fr) { place(); const ready = !!fr.dataset.loaded;
+      if (want !== shown) { shown = want; if (want && v === "city") fev("smBack()"); }
+      document.body.classList.toggle("usmap", want && ready);
+      fr.style.opacity = want && ready ? 1 : 0; fr.style.pointerEvents = want ? "auto" : "none"; fr.style.visibility = want || fr.style.opacity !== "0" ? "visible" : "hidden";
+      const c = want && ready && v === "city" && fev("smSel") === -1 ? mapCam() : null; pins.hidden = !c;
+      if (c) pins.querySelectorAll("button").forEach((b, i) => { const p = screen(c, CITIES[i][2], CITIES[i][3]); b.style.left = p[0] + "px"; b.style.top = p[1] + "px"; }); }
+    if (v === "us") { const h = document.getElementById("hsub"), t = "Hover a state to highlight it; click it to see its immigration since 2001. Switch layers on and off below, and drag the year."; if (h && h.textContent !== t) h.textContent = t; }
+    requestAnimationFrame(tick); }
+  requestAnimationFrame(tick); })();
 </script></body></html>
