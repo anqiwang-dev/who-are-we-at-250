@@ -25,7 +25,7 @@ function unproj(sx, sy) { const x = (sx - CAM.cx)/CAM.R, y = (CAM.cy - sy)/CAM.R
   const px = ROT[0]*x + ROT[3]*y + ROT[6]*z, py = ROT[1]*x + ROT[4]*y + ROT[7]*z, pz = ROT[2]*x + ROT[5]*y + ROT[8]*z; return [Math.atan2(px, pz)/D2R, Math.asin(clamp(py, -1, 1))/D2R]; }
 // country raster (quarter degree), for placing dots inside countries and for hover
 const MW = 1440, MH = 720, MASK = new Int16Array(MW*MH).fill(-1), SH = D.shapes;
-{ const off = document.createElement("canvas"); off.width = MW; off.height = MH; const q = off.getContext("2d");
+{ const off = document.createElement("canvas"); off.width = MW; off.height = MH; const q = off.getContext("2d", {willReadFrequently: true});
   SH.forEach(([n, rings], i) => { q.fillStyle = `rgb(${(i + 1) & 255},${(i + 1) >> 8},0)`; for (const r of rings) { const lons = r.map(p => p[0]), wrap = Math.max(...lons) - Math.min(...lons) > 180;
     for (const sh of wrap ? [0, 360] : [0]) { q.beginPath(); r.forEach((p, k) => { const lo = wrap && p[0] < 0 ? p[0] + 360 : p[0], x = (lo - sh + 180)/360*MW, y = (90 - p[1])/180*MH; k ? q.lineTo(x, y) : q.moveTo(x, y); }); q.closePath(); q.fill(); } } });
   const BB = SH.map(([, rings]) => { let a = 1e9, b = -1e9, c = 1e9, e = -1e9; for (const r of rings) for (const [lo, la] of r) { a = Math.min(a, lo); b = Math.max(b, lo); c = Math.min(c, la); e = Math.max(e, la); } return [a - 1, b + 1, c - 1, e + 1, b - a > 180]; });

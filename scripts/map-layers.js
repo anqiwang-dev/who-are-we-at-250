@@ -73,6 +73,14 @@ const SM_V = STS.states.map(s => s.r.map(r => r.map(([lo, la]) => v3(lo, la))));
 function smIn(si, x, y) { const b = SM_BB[si]; if (x < b[0] || x > b[1] || y < b[2] || y > b[3]) return false; let k = false;
   for (const r of STS.states[si].r) for (let i = 0, j = r.length - 1; i < r.length; j = i++) { const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi)*(y - yi)/(yj - yi) + xi) k = !k; }
   return k; }
+const SM_INM = {};
+function smInFast(si, x, y) { const b = SM_BB[si]; if (x < b[0] || x > b[1] || y < b[2] || y > b[3]) return false; let g = SM_INM[si];
+  if (!g) { const RS = .02, gw = Math.ceil((b[1] - b[0])/RS) + 1, gh = Math.ceil((b[3] - b[2])/RS) + 1, cv = document.createElement("canvas"); cv.width = gw; cv.height = gh;
+    const q = cv.getContext("2d", {willReadFrequently: true}); q.beginPath(); for (const r of STS.states[si].r) r.forEach(([lo, la], n) => { const px = (lo - b[0])/RS, py = (b[3] - la)/RS; n ? q.lineTo(px, py) : q.moveTo(px, py); }); q.fill("evenodd");
+    const d = q.getImageData(0, 0, gw, gh).data, m = new Uint8Array(gw*gh);   /* 1: this cell and its neighbours wholly inside, 0: wholly outside, 2: near the outline */
+    for (let j = 0; j < gh; j++) for (let i = 0; i < gw; i++) { let lo = 255, hi = 0; for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const ii = i + di, jj = j + dj, a = ii < 0 || jj < 0 || ii >= gw || jj >= gh ? 0 : d[4*(jj*gw + ii) + 3]; if (a < lo) lo = a; if (a > hi) hi = a; } m[j*gw + i] = hi === 0 ? 0 : lo === 255 ? 1 : 2; }
+    g = SM_INM[si] = {m, gw, gh, RS, x0: b[0], y1: b[3]}; }
+  const i = Math.floor((x - g.x0)/g.RS), j = Math.floor((g.y1 - y)/g.RS), v = i < 0 || j < 0 || i >= g.gw || j >= g.gh ? 2 : g.m[j*g.gw + i]; return v === 2 ? smIn(si, x, y) : v === 1; }
 function smHit(lon, lat) { for (let i = 0; i < STS.states.length; i++) if (smIn(i, lon, lat)) return i; return -1; }
 /* the map's three regions, each with its own camera: 0 the lower 48, 1 Alaska, 2 Hawaii (not shown: their cameras are off screen) */
 const SM_AK = STS.states.findIndex(s => s.ab === "AK"), SM_HI = STS.states.findIndex(s => s.ab === "HI"), SM_RG = STS.states.map((s, i) => i === SM_AK ? 1 : i === SM_HI ? 2 : 0);
@@ -108,7 +116,7 @@ const SM_BPC = Uint32Array.from(BPR.map(h => smPack(h, .95))), SM_BPD = Uint32Ar
 function smMakeBP() { let q = 2014; const r = () => (q = (Math.imul(q, 1664525) + 1013904223) >>> 0)/4294967296, gs = () => Math.sqrt(-2*Math.log(r() + 1e-9))*Math.cos(6.2832*r());
   const total = SM_BP.reduce((s, b) => s + Math.max(...b.v), 0), p = new Float32Array(3*total), c = new Uint8Array(total), j = new Uint32Array(total), k = new Uint8Array(total); let o = 0;
   SM_BP.forEach((b, bi) => { const mx = Math.max(...b.v); for (let jj = 0; jj < mx; jj++) { let lo = b.lon, la = b.lat;
-    for (let t = 0; t < 12; t++) { const x = b.lon + gs()*.35, y = b.lat + gs()*.25; if (smIn(b.si, x, y)) { lo = x; la = y; break; } }
+    for (let t = 0; t < 12; t++) { const x = b.lon + gs()*.35, y = b.lat + gs()*.25; if (smInFast(b.si, x, y)) { lo = x; la = y; break; } }
     p.set(v3(lo, la), 3*o); c[o] = bi; j[o] = jj; k[o] = Math.floor(r()*BPR.length); o++; } });
   return {p, c, j, k, n: o}; }
 /* point layers, one dot per person: H-1B approvals at the employer's ZIP (2009-2023, 2025) and international students at their campus (fall 2024),
@@ -173,6 +181,14 @@ function smPanel() { const s = STS.states[smSel], Y = Math.floor(smYear + 1e-6),
     + row(hy != null, "#ff45c5", `H-1B approvals, ${hy}`, hv) + row(Y >= 2024, "#f2e640", "international students, 2024", sv); }
 /* overlay: on the removals globe after the map, the same map is drawn on a clear canvas through the film's own camera (CAM), so the country stays
    as it was and only zooms out while the removals extend from it; the film draws nothing of the US underneath (NO_DET) */
+const SMBS = 256; let SM_NK = "", SM_BT = 0, SM_BT0 = -1, SM_BW = 0;
+function smBlocks(P, n, RG) { const nb = Math.ceil(n/SMBS), B = new Float32Array(5*nb);   /* each run of SMBS dots: its centre on the sphere, its radius, its region (255: mixed) */
+  for (let b = 0; b < nb; b++) { const i0 = b*SMBS, i1 = Math.min(n, i0 + SMBS); let x = 0, y = 0, z = 0, g = RG[i0], mx = false;
+    for (let i = i0; i < i1; i++) { x += P[3*i]; y += P[3*i + 1]; z += P[3*i + 2]; if (RG[i] !== g) mx = true; }
+    const l = Math.hypot(x, y, z) || 1; x /= l; y /= l; z /= l; let r = 0;
+    for (let i = i0; i < i1; i++) { const dx = P[3*i] - x, dy = P[3*i + 1] - y, dz = P[3*i + 2] - z, d = dx*dx + dy*dy + dz*dz; if (d > r) r = d; }
+    B[5*b] = x; B[5*b + 1] = y; B[5*b + 2] = z; B[5*b + 3] = Math.sqrt(r) + 1e-6; B[5*b + 4] = mx ? 255 : g; }
+  return B; }
 function smTick(dt, overlay) { const w = Math.round(W*DPR), h = Math.round(H*DPR); if (smc.width !== w || smc.height !== h) { smc.width = w; smc.height = h; } if (!smCam) smReset();
   if (!overlay) {
     if (smU < 1) { smU = Math.min(1, smU + dt/SM_FLY); smCams = smFrom.map((f, i) => camMix(f, smTo[i], ease(smU))); smCam = smCams[0]; }
@@ -209,15 +225,20 @@ function smTick(dt, overlay) { const w = Math.round(W*DPR), h = Math.round(H*DPR
   else if (anyDots) {
     if (!smOff || smOff.width !== W || smOff.height !== H) { smOff = document.createElement("canvas"); smOff.width = W; smOff.height = H; smOx = smOff.getContext("2d"); smID = smOx.createImageData(W, H); smU32 = new Uint32Array(smID.data.buffer); SM_DK = ""; }
     const camKey = cs.map(q => [q.lon, q.lat, q.R, q.cx, q.cy].join(",")).join(";") + "," + W + "," + H, dk = camKey + "|" + smYear.toFixed(3) + "|" + smSel + "|" + ["nim", "gc", "h1b", "stu", "det", "bp"].map(k => +!!SM_ON[k]).join("");
-    if (dk !== SM_DK) { SM_DK = dk; SM_CAMC = {...c};
-      smU32.fill(0); const CO = cs.map((q, g) => { const m = Ms[g]; return [m[0]*q.R, m[1]*q.R, m[2]*q.R, m[3]*q.R, m[4]*q.R, m[5]*q.R, m[6], m[7], m[8], q.cx, q.cy]; });
+    const nk = camKey + "|" + smSel + "|" + ["nim", "gc", "h1b", "stu", "det", "bp"].map(k => +!!SM_ON[k]).join(""), tb = performance.now();   /* everything but the year */
+    if (dk !== SM_DK && (nk !== SM_NK || tb - SM_BT >= SM_BW)) { SM_DK = dk; SM_NK = nk; SM_CAMC = {...c};
+      smU32.fill(0); const CO = cs.map((q, g) => { const m = Ms[g]; return [m[0]*q.R, m[1]*q.R, m[2]*q.R, m[3]*q.R, m[4]*q.R, m[5]*q.R, m[6], m[7], m[8], q.cx, q.cy, q.R]; });
       /* one pass per layer into the pixel buffer: 1 px squares, the chosen state's at full strength, the others dimmed */
       const pass = (S, lim, grp, col, dim) => { const n = S.n, CC = S.c, J = S.j, K = S.k;
-        if (S.pk !== camKey) { const P = S.p, RG = S.rg || (S.rg = smRegs(P, n)), pix = S.pix || (S.pix = new Int32Array(n));   /* where each dot lands for its region's camera, -1 if not on screen */
-          for (let i = 0; i < n; i++) { const px = P[3*i], py = P[3*i + 1], pz = P[3*i + 2], o = CO[RG[i]]; if (o[6]*px + o[7]*py + o[8]*pz < 0) { pix[i] = -1; continue; }
-            const X = Math.floor(o[9] + o[0]*px + o[1]*py + o[2]*pz), Y = Math.floor(o[10] - o[3]*px - o[4]*py - o[5]*pz); pix[i] = X < 0 || Y < 0 || X >= W || Y >= H ? -1 : Y*W + X; }
+        if (S.pk !== camKey) { const P = S.p, RG = S.rg || (S.rg = smRegs(P, n)), pix = S.pix || (S.pix = new Int32Array(n)), BK = S.bk || (S.bk = smBlocks(P, n, RG)), BV = S.bv || (S.bv = new Uint8Array(BK.length/5));
+          /* dots were made place by place, so each run of SMBS is a small patch: a patch wholly off screen (zoomed into a state or a city) is skipped whole */
+          for (let b = 0, nb = BV.length; b < nb; b++) { const i0 = b*SMBS, i1 = Math.min(n, i0 + SMBS), g = BK[5*b + 4]; BV[b] = 1;
+          if (g !== 255) { const o = CO[g], bx = BK[5*b], by = BK[5*b + 1], bz = BK[5*b + 2], rr = BK[5*b + 3], X = o[9] + o[0]*bx + o[1]*by + o[2]*bz, Y = o[10] - o[3]*bx - o[4]*by - o[5]*bz, rp = rr*o[11] + 2;
+            if (o[6]*bx + o[7]*by + o[8]*bz < -rr || X + rp < 0 || Y + rp < 0 || X - rp > W || Y - rp > H) { BV[b] = 0; continue; } }   /* where each dot lands for its region's camera, -1 if not on screen */
+          for (let i = i0; i < i1; i++) { const px = P[3*i], py = P[3*i + 1], pz = P[3*i + 2], o = CO[RG[i]]; if (o[6]*px + o[7]*py + o[8]*pz < 0) { pix[i] = -1; continue; }
+            const X = Math.floor(o[9] + o[0]*px + o[1]*py + o[2]*pz), Y = Math.floor(o[10] - o[3]*px - o[4]*py - o[5]*pz); pix[i] = X < 0 || Y < 0 || X >= W || Y >= H ? -1 : Y*W + X; } }
           S.pk = camKey; }
-        const pix = S.pix; for (let i = 0; i < n; i++) { const p = pix[i]; if (p < 0) continue; const ci = CC[i]; if (J[i] >= lim[ci]) continue; smU32[p] = sel && grp(ci) !== smSel ? dim[K[i]] : col[K[i]]; } };
+        const pix = S.pix, BV = S.bv; for (let b = 0, nb = BV.length; b < nb; b++) { if (!BV[b]) continue; for (let i = b*SMBS, i1 = Math.min(n, i + SMBS); i < i1; i++) { const p = pix[i]; if (p < 0) continue; const ci = CC[i]; if (J[i] >= lim[ci]) continue; smU32[p] = sel && grp(ci) !== smSel ? dim[K[i]] : col[K[i]]; } } };
       if (SM_ON.nim) { if (!SMD) SMD = smMake(); const cv = new Float32Array(STS.counties.length); STS.counties.forEach((cn, ci) => { cv[ci] = smVal(cn[3], smYear); }); pass(SMD, cv, ci => SM_CS[ci], SM_COL, SM_DIM); }
       /* green cards and students have one year each (2024), so they appear when the timeline reaches it; H-1B runs 2009-2025 */
       if (SM_ON.gc && smYear >= 2024) { if (!SMG) SMG = smTracts(STS.gc24, 2024); pass(SMG, STS.gc24, ci => SM_CS[ci], SM_GCC, SM_GCD); }
@@ -235,6 +256,7 @@ function smTick(dt, overlay) { const w = Math.round(W*DPR), h = Math.round(H*DPR
           if (d.j >= a[i0] + (a[i1] - a[i0])*u) continue; const p = fp[d.f]; if (p[2] < 0) continue; const an = d.j*2.39996, rr = ds*Math.sqrt(d.j + .5), q = [p[0] + rr*Math.cos(an), p[1] + rr*Math.sin(an), 1];
           if (off(q)) continue; rd[d.k + (sel && !mine ? 8 : 0)].rect(q[0] - r0, q[1] - r0, 2*r0, 2*r0); }
         for (let k = 0; k < 16; k++) { o.globalAlpha = k < 8 ? .95 : .18; o.fillStyle = REDS[k % 8]; o.fill(rd[k]); } o.globalAlpha = 1; } }
+    if (SM_BT0 !== tb && SM_DK === dk && SM_NK === nk) { SM_BT0 = tb; SM_BT = tb; SM_BW = Math.min(150, 3*(performance.now() - tb)); }   /* this frame rebuilt: the next year-only rebuild waits 3x as long as this one took */
     x.imageSmoothingEnabled = false; x.drawImage(smOff, 0, 0, W, H); }
   else SM_FAC = [];
   /* the chosen state's county borders; leaving the map, the last chosen state's keep fading with the other lines while the map zooms out */

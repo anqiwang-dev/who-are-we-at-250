@@ -156,7 +156,8 @@ let last = 0;
 function resize() { DPR = Math.min(2, devicePixelRatio || 1); W = innerWidth; H = Math.max(200, innerHeight - NAVH());
   GDPR = DPR;   /* the globe at the screen's density too (up to 2x): sharper dots and arcs; the globe's cost is in its vertices, not its pixels */
   ovc.width = Math.round(W*DPR); ovc.height = Math.round(H*DPR); glc.width = Math.round(W*GDPR); glc.height = Math.round(H*GDPR); gl.viewport(0, 0, glc.width, glc.height);   /* the globe at 1x (GDPR), labels and outlines at the screen's density */ USCK = ""; legendPaint(); measureLeg(); USK = 1; USTX = USTY = 0; if (smSel < 0) { smCams = usViews(); smCam = smCams[0]; } }
-function frame(now) { const dt = last ? Math.min(.1, (now - last)/1000) : 0; last = now;
+function frame(now) { if (window.MAPIDLE) { last = now; requestAnimationFrame(frame); return; }   /* embedded and hidden: nothing to draw */
+  const dt = last ? Math.min(.1, (now - last)/1000) : 0; last = now;
   if (Math.abs(ZT - ZOOM) > 1e-4) ZOOM += (ZT - ZOOM)*Math.min(1, dt*3.6); else ZOOM = ZT; const z = ZOOM;
   const lvl = z < .5 ? 0 : z < 1.5 ? 1 : 2; if (lvl !== LEVEL) { const was = LEVEL; LEVEL = lvl; levelBtns.forEach((b, i) => b.setAttribute("aria-pressed", i === lvl));    $("hint").textContent = lvl === 2 ? "Scroll in to go back" : "Scroll to zoom out"; if ((was === 0) !== (lvl === 0) || was < 0) { legendPaint(); measureLeg(); } }
   if (SELC >= 0 && Math.abs(ZT - 1) > .01) countryPick(-1);   /* leaving the world lets go of the country */
@@ -206,7 +207,7 @@ smTick(0, false);   /* the US map's image exists from the start, so a zoom from 
    so zooming out never waits for them; whatever is not built yet when the globe is reached is built then, as before. Green cards, the heaviest, last */
 const PREBUILD = [0, 1, 2, 3, 4, 5].map(t => () => typeBuf(t)).concat([() => iceRem(), () => bpb(), () => lprgBuf()]);
 let lastInput = performance.now(); for (const ev of ["pointermove", "pointerdown", "wheel", "keydown"]) addEventListener(ev, () => { lastInput = performance.now(); }, {passive: true, capture: true});
-function prebuild() { if (!PREBUILD.length) return; const quiet = !smPlay && ZOOM < .02 && ZT < .02 && performance.now() - lastInput > 700;
+function prebuild() { if (!PREBUILD.length || document.documentElement.classList.contains("embed")) return;   /* embedded in the artifact the map never leaves the US: no globe to prepare */ const quiet = !smPlay && ZOOM < .02 && ZT < .02 && performance.now() - lastInput > 700;
   if (quiet) PREBUILD.shift()(); setTimeout(prebuild, quiet ? 50 : 400); }
 setTimeout(prebuild, 1000);
 $("loading").hidden = true; requestAnimationFrame(frame);
