@@ -39,7 +39,9 @@ button.b:focus-visible,#nav button:focus-visible,#years button:focus-visible{out
 #legend .it{display:flex;flex-direction:column;align-items:center;gap:4px;font:500 12.5px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif}
 #legend canvas{position:static;width:52px;height:30px}
 #legend.side{left:auto;right:26px;top:50%;bottom:auto;transform:translateY(-50%);width:auto;min-width:150px;align-items:stretch;gap:0;background:none;border:0;padding:0;pointer-events:auto;text-shadow:0 1px 8px rgba(5,8,13,.95);opacity:.72;transition:opacity .3s}
-#legend.side:hover,#legend.side:focus-within{opacity:1}
+#legend.side:hover,#legend.side:focus-within,#legend.side.pinned{opacity:1}
+#legend.side.pinned .it:not(.hl){opacity:.4}#legend.side .it.pin span{text-decoration:underline;text-underline-offset:3px;text-decoration-thickness:1px}
+
 #legend.side .it{flex-direction:row;align-items:center;gap:7px;padding:2px 0;font:11px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;letter-spacing:.02em;text-align:left;white-space:nowrap;transition:opacity .2s}
 #legend.side .it svg{flex:0 0 auto;width:18px}#legend.side .it i{width:5px;height:5px;border-radius:50%;flex:0 0 auto;margin:0 6.5px}
 #legend.side .it em{font:10px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;font-style:normal;color:var(--ink3);margin-left:1px}#legend.side .it.off{opacity:.28}#legend.side .it.off span{text-decoration:line-through;text-decoration-color:rgba(236,230,216,.4)}
@@ -337,7 +339,7 @@ function drawLine(s, now) { g.setTransform(DPR, 0, 0, DPR, 0, 0); g.clearRect(0,
     if (major) { g.shadowColor = "#05080d"; g.shadowBlur = 6; g.fillText(v === 0 ? "0" : (v > 0 ? "+" : "−") + Math.abs(v/1e6) + "M", L.ax - 8, y + 4); g.shadowBlur = 0; } }
   if (!window.NOTITLE) { g.textAlign = "left"; g.fillStyle = "#ece6d8"; g.font = `400 ${L.nar ? 19 : 26}px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif`; g.fillText(L.nar ? "Net international migration to the US" : "Net international migration to the United States", L.nar ? 16 : L.ax, L.yt - 52);
   if (!L.nar) { g.save(); g.font = "500 10.5px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif"; g.fillStyle = "#f2b950"; if ("letterSpacing" in g) g.letterSpacing = "2px"; g.fillText(KICK.line.toUpperCase(), L.ax, L.yt - 86); g.restore(); }
-  g.font = "11px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif"; g.fillStyle = "#a7b0bf"; g.fillText(L.nar ? "People per year · Census Bureau" : "People per year, arrivals minus departures · Census Bureau, years ending 1 July", L.nar ? 16 : L.ax, L.yt - 30); }   // NOTITLE: recordings for the slides, where the slide carries the title
+  g.font = "11px 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif"; g.fillStyle = "#a7b0bf"; g.fillText(L.nar ? "People per year · Census Bureau" : "People per year · Census Bureau", L.nar ? 16 : L.ax, L.yt - 30); }   // NOTITLE: recordings for the slides, where the slide carries the title
   g.textAlign = "center"; for (let y = NY0; y <= 2026; y++) { if (L.nar && LC.span > 20 ? ((y % 5 || y === 2025) && y !== 2026) : (LC.span > 20 || (L.nar && LC.span > 10)) && y % 2 && y !== 2025) continue; const X = L.X(y); if (X < L.ax || X > W - 10) continue; g.fillStyle = y >= 2020 ? "#ff5a40" : "#66738a"; g.fillRect(X, L.yb + 10, 1, 5); g.fillText(String(y), X, L.yb + 30); }
   const x1 = s.pen, step = LC.span/420, xe = LC.x - LC.span*.66, XJ = NY0 + .9, xs = Math.min(xe, NY0 - .2); g.lineCap = "round";
   if (s.op < .99) for (const st of STR) { const reach = s.strands >= 1 ? 1 : ease(clamp((s.strands*1.9 - st.dl*.9)/1)), xEnd = s.pen > NY0 + .01 ? x1 : lerp(xs, NY0, reach); if (xEnd <= xs + 1e-3) continue; g.beginPath(); let pen = false;
@@ -466,31 +468,31 @@ function usLit() { const key = "u" + (SELS ?? "-"); if (key === LITKEY) return; 
 function worldLit() { const h = HK(), key = "w" + (SEL ?? "-") + LAYT.join("") + (h ?? "-"); if (key === LITKEY) return; LITKEY = key; const gh = h && h[0] === "g" ? VG[+h.slice(1)][1] : null;
   for (let i = 0; i < 256; i++) LIT[i*4] = SEL == null || i === SEL || i === 255 ? 255 : 100; for (let t = 0; t < 10; t++) LIT[(256 + t)*4] = t < 6 ? (LAYT[t] ? (h == null || (gh && gh.includes(t)) ? 255 : 100) : 0) : 255; pushLit(); }
 const DOTLEG = (c, n) => `<canvas width="104" height="60" data-c="${c}" aria-hidden="true"></canvas><span style="color:${c}">${n}</span>`;
-let HILITE = null; const layerOn = k => k == null ? false : k[0] === "g" && k.length === 2 ? VG[+k[1]][1].some(t => LAYT[t]) : !!LAY[k];
-const HK = () => HILITE != null && layerOn(HILITE) ? HILITE : null, hl = k => { const h = HK(); return h == null || h === k ? 1 : .04; };
+let HILITE = null, PIN = null; const layerOn = k => k == null ? false : k[0] === "g" && k.length === 2 ? VG[+k[1]][1].some(t => LAYT[t]) : !!LAY[k];
+const HK = () => { const k = HILITE != null ? HILITE : PIN; return k != null && layerOn(k) ? k : null; }, hl = k => { const h = HK(); return h == null || h === k ? 1 : .04; };
 function legend() { const el = $("legend"); if (VIEW === "line") { el.hidden = true; return; } el.hidden = false; el.classList.add("side"); const y = EY;
   const foc = document.activeElement && $("legend").contains(document.activeElement) ? document.activeElement.dataset.h : null;
   const dot = c => `<i style="background:${c}"></i>`, arc = (hk, c) => `<svg width="18" height="10" viewBox="0 0 18 10" aria-hidden="true" style="overflow:visible"><path d="M1 9.5 Q9 ${hk ? (9.5 - 17*hk/(HKG*.5)).toFixed(1) : 8.2} 17 9.5" fill="none" stroke="${c}" stroke-width="1.1"/></svg>`;
-  const it = (at, key, on, sw, c, label, note) => `<button type="button" class="it${on ? "" : " off"}${HILITE === key ? " hl" : ""}" ${at} data-h="${key}" aria-pressed="${!!on}">${sw}<span style="color:${c}">${label}</span>${note ? `<em>${note}</em>` : ""}</button>`;
+  const it = (at, key, on, sw, c, label, note) => `<button type="button" class="it${on ? "" : " off"}${HILITE === key || PIN === key ? " hl" : ""}${PIN === key ? " pin" : ""}" ${at} data-h="${key}" aria-pressed="${!!on}">${sw}<span style="color:${c}">${label}</span>${note ? `<em>${note}</em>` : ""}</button>`;
   const unit = t => `<div class="u"><i></i>${t}</div>`;
   if (VIEW === "world") { const hv = vI(y) >= 0, hl2 = lprYear(y) != null, hr = !!D.rem.years[y], hd = dI(y) >= 0;
-    el.innerHTML = VG.map(([n, ts, c], gi) => it(`data-g="${gi}"`, "g" + gi, ts.some(t => LAYT[t]), arc(HKJ[gi]*.5, LCOL[ts[0]]), gi === 0 ? "#7fc0dc" : c, n, hv ? "" : "–")).join("") +
-      it('data-k="lpr"', "lpr", LAY.lpr, arc(HKG*.5, "#3ddc84"), GREENS[0], "Green cards", hl2 ? "" : "2011–24") + it('data-k="rem"', "rem", LAY.rem, arc(0, RED), "#ff7a62", "ICE removals", hr ? "" : "2022–25") +
-      it('data-k="det"', "det", LAY.det, dot(RED), "#ff7a62", "Held by ICE", hd ? "" : "2019–26") + unit(`1 dot = ${DUNIT}`); }
+    el.innerHTML = VG.map(([n, ts, c], gi) => it(`data-g="${gi}"`, "g" + gi, ts.some(t => LAYT[t]), arc(HKJ[gi]*.5, LCOL[ts[0]]), gi === 0 ? "#7fc0dc" : c, n, "")).join("") +
+      it('data-k="lpr"', "lpr", LAY.lpr, arc(HKG*.5, "#3ddc84"), GREENS[0], "Green cards", "") + it('data-k="rem"', "rem", LAY.rem, arc(0, RED), "#ff7a62", "ICE removals", "") +
+      it('data-k="det"', "det", LAY.det, dot(RED), "#ff7a62", "Held by ICE", "") + unit(`1 dot = ${DUNIT}`); }
   else if (VIEW === "city" && CITYK) { const C0 = CITIES[CITYK], ok = y >= 2019 && y <= 2025;
-    el.innerHTML = it('data-k="cst"', "cst", LAY.cst, dot("#f2e640"), "#f2e640", "Students from abroad", ok ? "" : "2019–25") + it('data-k="ch1"', "ch1", LAY.ch1, dot("#ff45c5"), "#ff45c5", "H-1B approvals", ok ? "" : "2019–25") +
+    el.innerHTML = it('data-k="cst"', "cst", LAY.cst, dot("#f2e640"), "#f2e640", "Students from abroad", "") + it('data-k="ch1"', "ch1", LAY.ch1, dot("#ff45c5"), "#ff45c5", "H-1B approvals", "") +
       it('data-k="cvis"', "cvis", LAY.cvis, dot("#7fc0dc"), "#7fc0dc", CITYK === "la" ? "Visitors" : "Arrivals, Logan", "×1,000") + it('data-k="cjob"', "cjob", LAY.cjob, dot("#4a8ea8"), "#8fb8cc", "Jobs", "×" + C0.jpd) +
       unit("1 dot = 1 person") +
       `<div class="wo"><button type="button" class="b2 back" data-back="1">← Both cities</button><button type="button" class="b2 back" data-fly="${CITYK === "la" ? "bos" : "la"}">${CITYK === "la" ? "Boston" : "Los Angeles"} →</button></div>`; }
   else { const hc = cI(y) >= 0, hd = dI(y) >= 0, hl2 = y === LPR_Y;
-    el.innerHTML = it('data-k="pop"', "pop", LAY.pop, dot("#e9e4d8"), "#e9e4d8", "Residents", "×" + POPU.toLocaleString("en-US")) + it('data-k="cens"', "cens", LAY.cens, dot(BLUES[0]), "#7fc0dc", "Arrived since 2011, net", hc ? "" : "–") + it('data-k="lprus"', "lprus", LAY.lprus, dot(GREENS[0]), GREENS[0], "New green cards", hl2 ? "" : "2024") +
-      it('data-k="det"', "det", LAY.det, dot(RED), "#ff7a62", "Held by ICE", hd ? "" : "2019–26") + unit(`1 dot = ${DUNIT} people`); }
+    el.innerHTML = it('data-k="pop"', "pop", LAY.pop, dot("#e9e4d8"), "#e9e4d8", "Residents", "×" + POPU.toLocaleString("en-US")) + it('data-k="cens"', "cens", LAY.cens, dot(BLUES[0]), "#7fc0dc", "Arrived since 2011, net", "") + it('data-k="lprus"', "lprus", LAY.lprus, dot(GREENS[0]), GREENS[0], "New green cards", "") +
+      it('data-k="det"', "det", LAY.det, dot(RED), "#ff7a62", "Held by ICE", "") + unit(`1 dot = ${DUNIT} people`); }
   if (foc) { const b = el.querySelector(`[data-h="${foc}"]`); if (b) b.focus({preventScroll: true}); } }
 $("legend").addEventListener("pointerover", e => { const b = e.target.closest(".it"); const k = b ? b.dataset.h : null; if (k !== HILITE) { HILITE = k; LITKEY = ""; for (const x of $("legend").querySelectorAll(".it")) x.classList.toggle("hl", x.dataset.h === k); } });
-$("legend").addEventListener("pointerleave", () => { if (HILITE != null) { HILITE = null; LITKEY = ""; for (const x of $("legend").querySelectorAll(".it")) x.classList.remove("hl"); } });
+$("legend").addEventListener("pointerleave", () => { if (HILITE != null) { HILITE = null; LITKEY = ""; for (const x of $("legend").querySelectorAll(".it")) x.classList.toggle("hl", x.dataset.h === PIN); } });
 $("legend").addEventListener("focusin", e => { const b = e.target.closest(".it"); HILITE = b ? b.dataset.h : null; LITKEY = ""; });
 $("legend").addEventListener("focusout", e => { if (e.relatedTarget && $("legend").contains(e.relatedTarget)) return; HILITE = null; LITKEY = ""; });
-$("legend").addEventListener("click", e => { if (e.target.closest("[data-back]")) { selectCity(null); return; } const fl = e.target.closest("[data-fly]"); if (fl) { selectCity(fl.dataset.fly); return; } const b = e.target.closest(".it"); if (!b) return; if (b.dataset.g) { const ts = VG[+b.dataset.g][1], on = !ts.some(t => LAYT[t]); ts.forEach(t => LAYT[t] = on ? 1 : 0); } else LAY[b.dataset.k] = !LAY[b.dataset.k]; LAY.visa = LAYT.some(Boolean); HILITE = null; LITKEY = ""; legend(); });
+$("legend").addEventListener("click", e => { if (e.target.closest("[data-back]")) { selectCity(null); return; } const fl = e.target.closest("[data-fly]"); if (fl) { selectCity(fl.dataset.fly); return; } const b = e.target.closest(".it"); if (!b) return; const k = b.dataset.h; if (!layerOn(k)) { if (b.dataset.g) VG[+b.dataset.g][1].forEach(t => LAYT[t] = 1); else LAY[b.dataset.k] = true; LAY.visa = LAYT.some(Boolean); } PIN = PIN === k ? null : k; HILITE = null; LITKEY = ""; $("legend").classList.toggle("pinned", PIN != null); legend(); });
 function totals() { const y = EY, rows = []; $("yr").textContent = y;
   if (VIEW === "line") { const i = y - NY0; rows.push(i >= 0 && i < NV.length ? `<b>${fmt(NV[i])}</b> net international migration` : "projected: see the line"); }
   if (VIEW === "world") { const k = vI(y); if (k >= 0) rows.push(`<b>${fmt(D.niv[k])}</b> visas issued`); if (lprYear(y) != null) rows.push(`<b style="color:#34d27b">${fmt(lprYear(y))}</b> green cards`); const L2 = D.rem.years[y]; if (L2) rows.push(`<b style="color:#ff5a40">${fmt(L2.reduce((a, r) => a + r[2], 0))}</b> ICE removals (after an ICE arrest)`); }
@@ -508,9 +510,9 @@ function stopPlay() { if (YPLAY) { clearInterval(YPLAY); YPLAY = null; if ($("yp
 function play(from, to) { stopPlay(); setYear(from); YPLAY = setInterval(() => { if (EY >= to) { stopPlay(); return; } setYear(EY + 1); }, 1000); yearsBar(); }
 let camT = null; const tweenCam = (to, ms = 1600) => { camT = {t0: performance.now(), ms, a: {...CAM}, b: to}; };
 const KICK = {line: "01 · A country of immigrants", world: "02 · The door opens and shuts", us: "03 · Where they land", city: "04 · What they bring"};
-const HEADS = {line: ["Net international migration, 2001–2026", "Census Bureau; 2026 is the range of published projections. Hover the line for a year; click a glowing spot for what was done."],
-  world: ["Who comes, who is sent back", "Visas, green cards and removals, by country. Click a country for its numbers."],
-  us: ["Across the country", "White dots are everyone who lives there; the colored dots are people from abroad. Drag the line to compare, click a state or a city ring."], city: ["Two cities, with and without them", "Click Los Angeles or Boston."]};
+const HEADS = {line: ["Net international migration, 2001–2026", "Hover the line; click a glowing spot."],
+  world: ["Who comes, who is sent back", "Click a country, or a line in the key."],
+  us: ["Across the country", "Drag the line: with and without people from abroad."], city: ["Two cities, with and without them", "Click Los Angeles or Boston."]};
 // the cities: Los Angeles and Boston, each its own page carried inside this one
 const CITYPT = [["la", "Los Angeles", -118.33, 34.04], ["bos", "Boston", -71.08, 42.35]];
 function spotAt(x, y) { if (VIEW !== "city" || !CITYK) return null; const P = cityBuild(CITYK), ti = CYEARS.indexOf(EY); let best = null, bd = 1e9; for (const sp of P.spots) { if (ti >= 0 && sp.e.c[ti] === 0) continue; const q = proj(v3(sp.e.lon, sp.e.lat)), r = Math.max(14, sp.sk/6371*CAM.R*1.4), d = Math.hypot(q[0] - x, q[1] - y)/r; if (d < 1 && d < bd) { bd = d; best = sp; } } return best; }
@@ -522,7 +524,7 @@ function spotTip(sp) { const ti = CYEARS.indexOf(EY), v = ti >= 0 ? sp.e.c[ti] :
   if (sp.kind === "h1b") { const f = sp.e.f[ti]; if (f && f[0]) h += `<div class="r"><span>largest employer filing here</span><span>${fmt3(f[0][1])}</span></div>`; h += `<div class="r"><span>by employer filing address, not worksite</span></div>`; }
   return h; }
 function cityAt(x, y) { if (!USV || MODE !== "explore" || CITYK) return null; for (const c of CITYPT) { const q = proj(v3(c[2], c[3])); if (q[2] > 0 && Math.hypot(q[0] - x, q[1] - y) < 20) return c; } return null; }
-function setView(v, instant) { if (v === "line" && v !== VIEW) LGROW = performance.now(); if (v !== "line") { DV = DVT = 0; FLY0 = 0; FLYP = 0; } const grow = v === "us" && v !== VIEW; if (v !== VIEW) { SEL = SELS = HOVS = HOVK = null; SPLITX = null; stopPlay(); if (v === "world") WTR = 0; } if (v === "world" || v === "us") { EY = clamp(EY, 2011, v === "world" ? 2025 : 2026); if (EY - YB0 !== YB) { YA = YB = EY - YB0; YT = 1; } } VIEW = v; USV = v === "us" || v === "city"; $("dive").hidden = v !== "line"; $("hkick").textContent = KICK[v] || ""; $("htitle").textContent = HEADS[v][0]; $("hsub").textContent = HEADS[v][1]; $("hint").hidden = true; $("head").hidden = v === "line"; $("yrbox").hidden = false; if (v !== "city") CITYK = null; document.body.classList.toggle("vcity", v === "city"); document.body.classList.toggle("vline", v === "line"); caption("");
+function setView(v, instant) { if (v === "line" && v !== VIEW) LGROW = performance.now(); if (v !== "line") { DV = DVT = 0; FLY0 = 0; FLYP = 0; } const grow = v === "us" && v !== VIEW; if (v !== VIEW) { PIN = null; $("legend").classList.remove("pinned"); SEL = SELS = HOVS = HOVK = null; SPLITX = null; stopPlay(); if (v === "world") WTR = 0; } if (v === "world" || v === "us") { EY = clamp(EY, 2011, v === "world" ? 2025 : 2026); if (EY - YB0 !== YB) { YA = YB = EY - YB0; YT = 1; } } VIEW = v; USV = v === "us" || v === "city"; $("dive").hidden = v !== "line"; $("hkick").textContent = KICK[v] || ""; $("htitle").textContent = HEADS[v][0]; $("hsub").textContent = HEADS[v][1]; $("hint").hidden = true; $("head").hidden = v === "line"; $("yrbox").hidden = false; if (v !== "city") CITYK = null; document.body.classList.toggle("vcity", v === "city"); document.body.classList.toggle("vline", v === "line"); caption("");
   const line = v === "line"; $("ln").style.opacity = line ? 1 : 0; $("gl").style.opacity = line ? 0 : 1; $("ov").style.opacity = line ? 0 : 1; fx.clearRect(0, 0, fxc.width, fxc.height); $("tip").hidden = true;
   if (!line) { const to = v === "city" && CITYK ? cityCam(CITYK) : USV ? CAMS.us() : CAMS.world(); if (instant) { CAM = to; camT = null; } else tweenCam(to); } if (line && EY > 2025) EY = 2025; legend(); totals(); yearsBar(); selCard(); cityHead(); chap(); if (grow && MODE === "explore" && !NOGROW) play(2011, 2024); }
 function enterExplore(view) { $("back").hidden = true; const fromRem = MODE === "film" && (PH[PI_].id === "rem" || PH[PI_].id === "explore"); MODE = "explore"; PI_ = PH.length - 1; caption(""); note(""); PLAY = false;
@@ -761,7 +763,7 @@ function cityKeep(k, f) { const P = cityBuild(k); sd = 2026; const thin = a => {
 function selectCity(k) { stopPlay(); if (CITYK && k && k !== CITYK) FROMK = CITYK; CITYK = k; HOVSP = null; SPLITX = null; yearsBar(); splitUI(); if (k) { cityBuild(k); if (EY < 2019 || EY > 2025) setYear(2019); } tweenCam(k ? cityCam(k) : CAMS.us(), CITYK && k && VIEW === "city" && PREVK && PREVK !== k ? 3200 : 1800); PREVK = k; legend(); totals(); cityHead(); if (k && typeof play === "function") play(2019, 2025); }
 function cityHead() { splitUI(); if (VIEW !== "city") return; if (!CITYK) { $("hkick").textContent = KICK.city; $("htitle").textContent = HEADS.city[0]; $("hsub").textContent = HEADS.city[1]; return; } const P = cityBuild(CITYK), ti = CYEARS.indexOf(EY), t = ti >= 0 ? P.tot[ti] : null;
   $("hkick").textContent = KICK.city; $("htitle").textContent = CITIES[CITYK].name;
-  $("hsub").textContent = !t ? "City counts cover 2019–2025." : "Drag the line across the city. To its right, the people who came from abroad are gone.";
+  $("hsub").textContent = !t ? "City counts cover 2019–2025." : "Drag the line. To its right, they are gone.";
 }
 const splitAt = () => SPLITX ?? (CITYK ? cityCam(CITYK).cx : W/2);
 function splitUI() { const el = $("split"), on = ((VIEW === "city" && !!CITYK) || VIEW === "us") && MODE === "explore" && !EVT && !camT; el.hidden = !on; if (!on) return; const x = splitAt(); el.style.left = x + "px";
@@ -785,14 +787,14 @@ function cityLabels(P) { const sx = splitAt(), ti = CYEARS.indexOf(EY), ph = W <
   if (ti >= 0) { ov.lineWidth = .7; for (const sp of P.spots) { const v = sp.e.c[ti]; if (!v || !ON[sp.kind]) continue; const q = proj(v3(sp.e.lon, sp.e.lat)); if (q[2] < 0 || q[0] <= sx) continue; const r = Math.max(2.5, sp.sk/6371*CAM.R*.8); ov.globalAlpha = .32*hl(KK[sp.kind]); ov.strokeStyle = KC[sp.kind]; ov.beginPath(); ov.arc(q[0], q[1], r, 0, 6.283); ov.stroke(); } ov.globalAlpha = 1; ov.lineWidth = 3.5; ov.strokeStyle = "rgba(5,8,13,.9)"; }
   const done = new Set();
   if (ti >= 0) { const cand = [];
-    for (const sp of P.spots) { const v = sp.e.c[ti]; if (!v || !ON[sp.kind]) continue; if (sp.kind === "h1b" ? v < (ph ? 150 : 60) : !sp.lab && v < (ph ? 500 : 150)) continue; const q = proj(v3(sp.e.lon, sp.e.lat)); if (q[2] < 0 || q[0] <= sx) continue; cand.push({sp, q, v}); }
+    for (const sp of P.spots) { const v = sp.e.c[ti]; if (!v || !ON[sp.kind]) continue; if (sp.kind === "h1b" ? v < (ph ? 300 : 200) : !sp.lab && v < (ph ? 1200 : 600)) continue; const q = proj(v3(sp.e.lon, sp.e.lat)); if (q[2] < 0 || q[0] <= sx) continue; cand.push({sp, q, v}); }
     cand.sort((a, b) => (b.sp.kind === "vis") - (a.sp.kind === "vis") || (!!b.sp.lab) - (!!a.sp.lab) || b.v - a.v);
-    let n = 0; for (const {sp, q, v} of cand) { if (n >= (ph ? 12 : 60)) break; const r = Math.max(4, sp.sk/6371*CAM.R*.8), a = .95*hl(KK[sp.kind]), cnt = "−" + fmt3(v) + (sp.kind === "vis" ? (sp.e.arr ? " arrivals" : " visitors") : "");
+    let n = 0; for (const {sp, q, v} of cand) { if (n >= (ph ? 8 : 16)) break; const r = Math.max(4, sp.sk/6371*CAM.R*.8), a = .95*hl(KK[sp.kind]), cnt = "−" + fmt3(v) + (sp.kind === "vis" ? (sp.e.arr ? " arrivals" : " visitors") : "");
       const lab = sp.lab && !done.has(sp.lab) ? sp.lab : null, parts = lab ? [[lab + " ", "rgba(236,230,216,.92)", F1], [cnt, KC[sp.kind], F2]] : [[cnt, KC[sp.kind], F2]];
       if (place(parts, q, r, a, true)) { n++; if (lab) done.add(lab); } } }
   // names: on the with side every place's name (students' colleges too); on the without side only the towns not yet written
   const named = [...P.names.map(([nm, lon, lat, w2]) => ({nm, lon, lat, big: w2 > 1})), ...P.spots.filter(sp => sp.kind === "st" && sp.lab && (ti < 0 || sp.e.c[ti])).sort((a, b) => Math.max(...b.e.c) - Math.max(...a.e.c)).map(sp => ({nm: sp.lab, lon: sp.e.lon, lat: sp.e.lat, big: true, r: sp.sk}))];
-  for (const o of named) { if (done.has(o.nm)) continue; const q = proj(v3(o.lon, o.lat)); if (q[2] < 0) continue; const left = q[0] < sx; if (!left && P.spotLabs.has(o.nm)) continue;
+  for (const o of named) { if (done.has(o.nm) || !o.big) continue; const q = proj(v3(o.lon, o.lat)); if (q[2] < 0) continue; const left = q[0] < sx; if (!left && P.spotLabs.has(o.nm)) continue;
     const r = o.r ? Math.max(5, o.r/6371*CAM.R*.8) : 2; if (place([[o.nm, o.big ? "rgba(236,230,216,.9)" : "rgba(236,230,216,.58)", o.big ? `12px ${CG}` : `11px ${CG}`]], q, r, 1, left ? false : true)) done.add(o.nm); }
   ov.restore(); }
 // faint borders between countries, drawn on the sphere
@@ -876,54 +878,8 @@ MODE = "explore"; ["head", "yrbox"].forEach(id => $(id).hidden = false); $("ctrl
 document.fonts.ready.then(() => requestAnimationFrame(frame));
 </script>
 <div id="topbar"><a id="tbback" href="https://anqiwang.framer.website/all-projects">← Portfolio</a><a id="tbabout" href="index.html">About this project</a></div>
-<script>(function(){var b=document.getElementById("tbback");if(document.referrer.indexOf("anqiwang.framer.website")>-1){b.addEventListener("click",function(e){if(history.length>1){e.preventDefault();history.back()}})}})()</script><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script><style>body.usmap #split,body.usmap #grip,body.usmap #yrbox,body.usmap #legend,body.usmap #years,body.usmap #ctrl,body.usmap #hint,body.usmap #tip,body.usmap #land,body.usmap #gl,body.usmap #ov,body.usmap #fx{visibility:hidden!important}</style><style>#cityPins{position:fixed;inset:0;z-index:41;pointer-events:none}#cityPins button{position:absolute;transform:translate(-50%,-50%);pointer-events:auto;background:none;border:0;padding:0;cursor:pointer;width:34px;height:34px}
-#cityPins button::before{content:"";position:absolute;inset:8px;border-radius:50%;border:1.5px solid #ece6d8;box-shadow:0 0 14px rgba(127,192,220,.7);animation:cpulse 2.4s ease-in-out infinite}
-#cityPins button span{position:absolute;left:36px;top:50%;transform:translateY(-50%);white-space:nowrap;font:500 12px 'Century Gothic',CenturyGothic,AppleGothic,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#ece6d8;text-shadow:0 0 6px #05080d,0 0 12px #05080d}
-#cityPins button.r span{left:auto;right:36px}#cityPins button:hover::before,#cityPins button:focus-visible::before{background:rgba(127,192,220,.25)}
-@keyframes cpulse{50%{transform:scale(1.25);opacity:.7}}</style>
-<script>/* site: the interactive state map (map.html?embed) is the US in "The US" chapter and the starting map of "The cities":
-   clicking Los Angeles or Boston hands the map's exact camera to the artifact, which flies from there into the city; "← Both cities" flies back and the map returns */
-(() => { let fr = null, pins = null, leaving = false, shown = false, prevK = null, zoomK = null, c0 = null; const nav = document.getElementById("nav"), head = document.getElementById("head");
-  const CITIES = [["la", "Los Angeles", -118.24, 34.05, 1], ["bos", "Boston", -71.06, 42.36, 0]];
-  const topY = () => Math.max(nav.getBoundingClientRect().bottom, head ? head.getBoundingClientRect().bottom : 0) + 10;
-  const fwin = () => fr && fr.contentWindow, fev = js => { try { return fwin().eval(js); } catch (e) { return null; } };
-  function place() { if (!fr) return; const t = topY(); fr.style.top = t + "px"; fr.style.height = (innerHeight - t) + "px"; }
-  const frTop = () => fr && fr.style.top ? parseFloat(fr.style.top) : topY();   /* where the map frame actually is: it is not resized while it is on screen mid-flight */
-  function mapCam() { const c = fev("usViews()[0]"); return c && {lon: c.lon, lat: c.lat, R: c.R, cx: c.cx, cy: c.cy + frTop()}; }
-  function screen(c, lon, lat) { const L = c.lon*Math.PI/180, B = c.lat*Math.PI/180, l = lon*Math.PI/180, f = lat*Math.PI/180, p = [Math.cos(f)*Math.sin(l), Math.sin(f), Math.cos(f)*Math.cos(l)];
-    const x = Math.cos(L)*p[0] - Math.sin(L)*p[2], y = -Math.sin(L)*Math.sin(B)*p[0] + Math.cos(B)*p[1] - Math.cos(L)*Math.sin(B)*p[2]; return [c.cx + x*c.R, c.cy - y*c.R]; }
-  function make() { fr = document.createElement("iframe"); fr.id = "usmap"; fr.src = "map.html?embed"; fr.title = "Map of the United States: hover a state, click it to see its immigration since 2001";
-    fr.style.cssText = "position:fixed;left:0;right:0;bottom:0;width:100%;border:0;background:#05080d;z-index:40;transition:opacity .7s;opacity:0"; document.body.appendChild(fr); fr.addEventListener("load", () => { fr.dataset.loaded = 1; });
-    pins = document.createElement("div"); pins.id = "cityPins"; pins.hidden = true; document.body.appendChild(pins);
-    for (const [k, n, , , r] of CITIES) { const b = document.createElement("button"); b.type = "button"; b.dataset.k = k; if (r) b.className = "r"; b.innerHTML = `<span>${n}</span>`; b.setAttribute("aria-label", n); b.onclick = () => go(k); pins.appendChild(b); } }
-  function go(k) { const c = mapCam(); if (c) { CAM = c; camT = null; ROT = rot(CAM); c0 = c; zoomK = k; } leaving = true; selectCity(k); }
-  function tick() { const v = typeof VIEW !== "undefined" ? VIEW : null, ck = typeof CITYK !== "undefined" ? CITYK : null;
-    if (ck) leaving = false;
-    if (prevK && !ck && v === "city" && camT) { const c = mapCam(); if (c) { camT.b = c; c0 = c; zoomK = prevK; } }   /* back to both cities: land on the map's own framing, so it fades back in without a jump */
-    prevK = ck;
-    const want = v === "us" || (v === "city" && !ck && !leaving && !camT);
-    if (want && !fr) make();
-    if (fr) { if (!zoomK || +fr.style.opacity < .02) place(); const ready = !!fr.dataset.loaded;
-      if (want !== shown) { shown = want; if (want && v === "city") fev("smBack()"); }
-      document.body.classList.toggle("usmap", want && ready);
-      fr.style.opacity = want && ready ? 1 : 0; fr.style.pointerEvents = want ? "auto" : "none"; fr.style.visibility = want || fr.style.opacity !== "0" ? "visible" : "hidden";
-      const c = want && ready && v === "city" && fev("smSel") === -1 ? mapCam() : null; pins.hidden = !c;
-      if (c) pins.querySelectorAll("button").forEach((b, i) => { const p = screen(c, CITIES[i][2], CITIES[i][3]); b.style.left = p[0] + "px"; b.style.top = p[1] + "px"; }); }
-    /* during a flight between the map and a city, the map stays on and zooms with the artifact's camera, pinned at the city, and fades as the city's own dots take over */
-    if (fr) { if (zoomK && v !== "city") zoomK = null;
-      if (zoomK && c0) { const ci = CITIES.find(c => c[0] === zoomK), t = frTop(), sc = CAM.R/c0.R, p0 = screen(c0, ci[2], ci[3]), p1 = screen(CAM, ci[2], ci[3]);
-        fr.style.transition = "none"; const b = fev("usBase()[0]");   /* drive the map's own zoom (past its usual 2x), so its dots stay sharp: the city sits where the artifact's camera has it */
-        if (b) { const q0 = screen(b, ci[2], ci[3]); fev(`USK = ${sc}; USTX = ${p1[0] - sc*q0[0]}; USTY = ${p1[1] - t - sc*q0[1]}; GDPR = DPR*${Math.min(5, Math.sqrt(sc))};`);   /* the dots grow as it zooms, so the land stays covered */ }
-        const k = camT ? Math.min(1, (performance.now() - camT.t0)/camT.ms) : 1, sm = x => { x = Math.min(1, Math.max(0, x)); return x*x*(3 - 2*x); };   /* in: the map holds until the city arrives; out: it is back by mid-flight */
-        fr.style.opacity = ck ? 1 - sm((k - .72)/.26) : sm((k - .15)/.45); fr.style.visibility = "visible"; fr.style.pointerEvents = "none"; pins.hidden = true; document.body.classList.remove("usmap");
-        if (!camT) { fev("USK = 1; USTX = USTY = 0; GDPR = DPR;"); if (!ck) fr.style.opacity = 1; zoomK = null; } }
-      else fr.style.transition = "opacity .7s"; }
-    if (v === "us") { const h = document.getElementById("hsub"), t = "Hover a state to highlight it; click it to see its immigration since 2001. Switch layers on and off below, and drag the year."; if (h && h.textContent !== t) h.textContent = t; }
-    requestAnimationFrame(tick); }
-  requestAnimationFrame(tick); })();
-</script><script>/* site: while the state map covers the screen, the artifact's own globe underneath (hidden anyway) is not drawn, so only one
-   picture is rendered; the chapter buttons still follow along. The map in turn sleeps whenever it is hidden (MAPIDLE, read by map.js) */
-{ const F0 = frame; frame = now => { if (document.body.classList.contains("usmap")) { last = now; chap(); requestAnimationFrame(frame); return; } F0(now); }; }
+<script>(function(){var b=document.getElementById("tbback");if(document.referrer.indexOf("anqiwang.framer.website")>-1){b.addEventListener("click",function(e){if(history.length>1){e.preventDefault();history.back()}})}})()</script><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script>
+<script>/* site: both cities are prebuilt when The cities opens */
 { let pre = false; const warm = () => { if (!pre && typeof VIEW !== "undefined" && VIEW === "city") { pre = true; let i = 0; const next = () => { const k = ["la", "bos"][i++]; if (!k) return; try { cityBuild(k); } catch (e) {} setTimeout(next, 250); }; setTimeout(next, 150); } if (!pre) setTimeout(warm, 300); }; warm(); }   /* both cities' dots are made while the map of the two fades in, not in the middle of the first flight */
-{ let idle = null; const sleep = () => { const f = document.getElementById("usmap"); if (f && f.dataset.loaded) { const v = f.style.visibility === "hidden"; if (v !== idle) { try { f.contentWindow.MAPIDLE = v; idle = v; } catch (e) {} } } requestAnimationFrame(sleep); }; requestAnimationFrame(sleep); }
+
 </script></body></html>
