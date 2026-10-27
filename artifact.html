@@ -111,6 +111,28 @@ body.vcity #legend.side{opacity:.9}body.vcity #legend.side::before{content:"";po
 #topbar #tbabout:hover{color:#05080d}
 #nav{z-index:51}
 @media (max-width:760px){#topbar #tbabout{display:none}#topbar{height:calc(40px + env(safe-area-inset-top,0px))}#nav{top:calc(46px + env(safe-area-inset-top,0px))!important}}
+
+/* site: the project site's navbar replaces the artifact's own top bar and chapter tabs, so the whole site is one place */
+nav.nav{position:fixed;inset:0 0 auto 0;z-index:6;height:56px;display:flex;align-items:center;justify-content:flex-start;gap:16px;padding:0 clamp(16px,3vw,40px);background:#05080d;border-bottom:1px solid #1c2533}
+nav.nav .brand{font:700 15px/1.2 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;color:#7fc0dc;text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;margin-right:auto}
+nav.nav ul{display:flex;flex:none;gap:clamp(14px,2.4vw,32px);list-style:none;margin:0;padding:0}
+nav.nav a.link{font:400 14px/1 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;letter-spacing:.04em;text-decoration:none;color:#a7b0bf;padding:6px 0;border-bottom:1px solid transparent}
+nav.nav a.link:hover{color:#ece6d8}
+nav.nav a.link[aria-current=page]{color:#ece6d8;border-bottom-color:#7fc0dc}
+nav.nav a:focus-visible{outline:2px solid #7fc0dc;outline-offset:4px}
+nav.nav .back{flex:none;font:400 13px/1 'Century Gothic', CenturyGothic, AppleGothic, 'URW Gothic', sans-serif;letter-spacing:.04em;color:#ece6d8;text-decoration:none;padding:7px 12px;border:1px solid rgba(236,230,216,.28);border-radius:99px;transition:background .25s,color .25s}
+nav.nav .back:hover{background:#ece6d8;color:#05080d}
+nav.nav [hidden]{display:none}
+@media (max-width:1240px){nav.nav .brand{display:none}nav.nav ul{margin-left:auto}}
+@media (max-width:760px){nav.nav{gap:12px}nav.nav ul{flex:1 1 auto;min-width:0;gap:16px;overflow-x:auto;scrollbar-width:none;-webkit-mask-image:linear-gradient(90deg,#000 88%,transparent)}nav.nav ul::-webkit-scrollbar{display:none}nav.nav a.link{font-size:13px;white-space:nowrap}nav.nav .back{font-size:12px;padding:6px 10px}}
+#topbar,#nav{display:none!important}
+#citysw{top:calc(70px + env(safe-area-inset-top,0px))}
+#head{top:calc(112px + env(safe-area-inset-top,0px))}
+#yrbox{top:calc(76px + env(safe-area-inset-top,0px))}
+#selc{top:calc(190px + env(safe-area-inset-top,0px))}
+#hint{top:calc(70px + env(safe-area-inset-top,0px))}
+#back{top:calc(70px + env(safe-area-inset-top,0px))}
+@media (max-width:760px){#selc{top:calc(96px + env(safe-area-inset-top,0px))}#head{top:calc(86px + env(safe-area-inset-top,0px))}#hint{top:calc(66px + env(safe-area-inset-top,0px))}#yrbox{top:calc(112px + env(safe-area-inset-top,0px))}#back{top:calc(76px + env(safe-area-inset-top,0px))}}
 </style></head><body>
 <canvas id="gl" aria-hidden="true"></canvas>
 <canvas id="ov" aria-label="A globe of visas issued by the United States: one dot is 50 visas, coloured by type, gathered in each country; hairline arcs show where they fly; red marks removals"></canvas>
@@ -320,7 +342,7 @@ const D2 = window.D2, NV = D2.nimx.nim, NY0 = 2001, PROJ = D.proj, PARTIAL = D2.
 const nimAt = x => { const f = clamp(x - NY0, 0, NV.length - 1.0001), i = Math.floor(f), u = f - i, s = u*u*(3 - 2*u); return NV[i] + (NV[Math.min(i + 1, NV.length - 1)] - NV[i])*s; };
 let L = {}, LC = {x: 2015.2, span: 9}, YOFF = 0;
 // the line's own camera: it follows the pen up close, pulls back to the whole line at 2026, then dives into 2024-25
-function layout() { const nar = W < 760; L = {nar, yt: nar ? 152 : 162, yb: nar ? Math.round(H*.6) : H - 200, vlo: -1e6, vhi: 3e6, ax: nar ? 46 : 74};
+function layout() { const nar = W < 760; L = {nar, yt: nar ? 152 : 178, yb: nar ? Math.round(H*.6) : H - 200, vlo: -1e6, vhi: 3e6, ax: nar ? 46 : 74};
   L.X = y => W/2 + (y - LC.x)/LC.span*W*(nar ? .86 : .8); L.Y0 = v => L.yb - (v - L.vlo)/(L.vhi - L.vlo)*(L.yb - L.yt); L.Y = v => L.Y0(v) + YOFF; L.ppy = () => L.X(NY0 + 1) - L.X(NY0); }
 const FOLLOW = px => ({x: clamp(px - 2.2, NY0 + 4.2, 2022.4), span: 9}), WHOLE = () => ({x: 2013.6, span: L.nar ? 30.5 : 27.6}), DIVE = {x: 2024.5, span: 2.3};
 const lcMix = (a, b, u) => ({x: lerp(a.x, b.x, u), span: Math.exp(lerp(Math.log(a.span), Math.log(b.span), u))});
@@ -877,8 +899,19 @@ window.APP = {cityKeep, dive: v => { DVT = v; }, land: () => { FLY0 = performanc
 MODE = "explore"; ["head", "yrbox"].forEach(id => $(id).hidden = false); $("ctrl").hidden = true; $("back").hidden = true; setYear(2024); setView("line", true);
 document.fonts.ready.then(() => requestAnimationFrame(frame));
 </script>
-<div id="topbar"><a id="tbback" href="https://anqiwang.framer.website/all-projects">← Portfolio</a><a id="tbabout" href="index.html">About this project</a></div>
-<script>(function(){var b=document.getElementById("tbback");if(document.referrer.indexOf("anqiwang.framer.website")>-1){b.addEventListener("click",function(e){if(history.length>1){e.preventDefault();history.back()}})}})()</script><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script>
+<nav class="nav" aria-label="Site"><a class="back" href="https://anqiwang.framer.website/all-projects" hidden>← Portfolio</a><a class="brand" href="index.html">Immigration &amp; Deportation in America</a><ul><li><a class="link" href="index.html">About</a></li><li><a class="link" href="team.html">Team</a></li><li><a class="link" href="artifact.html#line" data-c="line">The line</a></li><li><a class="link" href="artifact.html#world" data-c="world">The world</a></li><li><a class="link" href="artifact.html#us" data-c="us">The US</a></li><li><a class="link" href="artifact.html#city" data-c="city">The cities</a></li><li><a class="link" href="map.html">Map</a></li><li><a class="link" href="graphs.html">Graphs</a></li><li><a class="link" href="data.html">Data</a></li><li><a class="link" href="methods.html">Methods</a></li></ul></nav>
+<script>/* a visitor who came from the portfolio keeps a way back to it on every page */(function(){try{if(/anqiwang\.framer\.website/.test(document.referrer))sessionStorage.setItem("wawFromPortfolio","1");if(sessionStorage.getItem("wawFromPortfolio"))document.querySelector(".nav .back").hidden=false}catch(e){}})()</script>
+<script>/* site: the navbar's chapter links switch chapters in place, and the current chapter is underlined */
+(function(){
+  const links = [...document.querySelectorAll("nav.nav a[data-c]")], open = c => { const b = document.querySelector(`#nav [data-c="${c}"]`); if (b) b.click(); };
+  links.forEach(a => a.addEventListener("click", e => { e.preventDefault(); open(a.dataset.c); }));
+  let ready = false; addEventListener("load", () => setTimeout(() => { ready = true; mark(); }, 1500));   // the URL's own chapter opens first (400 ms after load); only then does the hash follow the view
+  const mark = () => { const on = document.querySelector('#nav button[aria-current="step"]'), c = on && on.dataset.c;
+    links.forEach(a => a.toggleAttribute("aria-current", a.dataset.c === c)); links.forEach(a => { if (a.dataset.c === c) a.setAttribute("aria-current", "page"); });
+    if (ready && c && location.hash.slice(1) !== c) history.replaceState(null, "", "#" + c); };
+  new MutationObserver(mark).observe(document.getElementById("nav"), {subtree: true, attributes: true, attributeFilter: ["aria-current"]}); mark();
+  addEventListener("hashchange", () => open(location.hash.slice(1)));
+})();</script><script>/* site: open the chapter named in the URL hash */addEventListener("load",()=>{const c=location.hash.slice(1);const b=c&&document.querySelector(`#nav [data-c="${c}"]`);if(b)setTimeout(()=>b.click(),400)});</script>
 <script>/* site: both cities are prebuilt when The cities opens */
 { let pre = false; const warm = () => { if (!pre && typeof VIEW !== "undefined" && VIEW === "city") { pre = true; let i = 0; const next = () => { const k = ["la", "bos"][i++]; if (!k) return; try { cityBuild(k); } catch (e) {} setTimeout(next, 250); }; setTimeout(next, 150); } if (!pre) setTimeout(warm, 300); }; warm(); }   /* both cities' dots are made while the map of the two fades in, not in the middle of the first flight */
 
